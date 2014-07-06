@@ -1,0 +1,26 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+*.pyc
+.hg*
+build/
+m5out/
+parsetab.py
+*.out
+*.dat
+*.log
+
+.project
+.cproject
+.settings/
