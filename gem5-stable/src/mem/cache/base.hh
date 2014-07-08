@@ -73,6 +73,8 @@
 #include "sim/system.hh"
 
 class MSHR;
+class CacheController;
+
 /**
  * A basic cache interface. Implements some common functions for speed.
  */
@@ -299,6 +301,9 @@ class BaseCache : public MemObject
 
     /** System we are currently operating in. */
     System *system;
+
+    /** THNVM cache controller */
+    CacheController* controller;
 
     // Statistics
     /**
