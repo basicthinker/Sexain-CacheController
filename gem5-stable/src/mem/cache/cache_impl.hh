@@ -1095,6 +1095,14 @@ Cache<TagStore>::memWriteback()
 
 template<class TagStore>
 void
+Cache<TagStore>::memWritebackTiming()
+{
+    WrappedBlkVisitor visitor(*this, &Cache<TagStore>::writebackTimingVisitor);
+    tags->forEachBlk(visitor);
+}
+
+template<class TagStore>
+void
 Cache<TagStore>::memInvalidate()
 {
     WrappedBlkVisitor visitor(*this, &Cache<TagStore>::invalidateVisitor);
@@ -1125,6 +1133,27 @@ Cache<TagStore>::writebackVisitor(BlkType &blk)
         packet.dataStatic(blk.data);
 
         memSidePort->sendFunctional(&packet);
+
+        blk.status &= ~BlkDirty;
+    }
+
+    return true;
+}
+
+template<class TagStore>
+bool
+Cache<TagStore>::writebackTimingVisitor(BlkType &blk)
+{
+    if (blk.isDirty()) {
+        assert(blk.isValid());
+
+        Request request(tags->regenerateBlkAddr(blk.tag, blk.set),
+                        blkSize, 0, Request::funcMasterId);
+
+        Packet packet(&request, MemCmd::WriteReq);
+        packet.dataStatic(blk.data);
+
+        memSidePort->sendTimingReq(&packet);
 
         blk.status &= ~BlkDirty;
     }
