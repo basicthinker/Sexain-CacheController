@@ -299,13 +299,6 @@ class Cache : public BaseCache
      */
     PacketPtr writebackBlk(BlkType *blk);
 
-
-    void memWriteback();
-    void memInvalidate();
-    bool isDirty() const;
-
-    void memWritebackTiming();
-
     /**
      * Cache block visitor that writes back dirty cache blocks using
      * functional writes.
@@ -419,6 +412,11 @@ class Cache : public BaseCache
     virtual ~Cache();
 
     void regStats();
+
+    void memWriteback();
+    void memWritebackTiming();
+    void memInvalidate();
+    bool isDirty() const;
 
     /** serialize the state of the caches
      * We currently don't support checkpointing cache state, so this panics.

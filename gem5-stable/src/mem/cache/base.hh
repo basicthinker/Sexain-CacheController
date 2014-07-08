@@ -223,25 +223,6 @@ class BaseCache : public MemObject
         }
     }
 
-    /**
-     * Write back dirty blocks in the cache using functional accesses.
-     */
-    virtual void memWriteback() = 0;
-    /**
-     * Invalidates all blocks in the cache.
-     *
-     * @warn Dirty cache lines will not be written back to
-     * memory. Make sure to call functionalWriteback() first if you
-     * want the to write them to memory.
-     */
-    virtual void memInvalidate() = 0;
-    /**
-     * Determine if there are any dirty blocks in the cache.
-     *
-     * \return true if at least one block is dirty, false otherwise.
-     */
-    virtual bool isDirty() const = 0;
-
     /** Block size of this cache */
     const unsigned blkSize;
 
@@ -293,6 +274,29 @@ class BaseCache : public MemObject
     const AddrRangeList addrRanges;
 
   public:
+    /**
+     * Write back dirty blocks in the cache using functional accesses.
+     */
+    virtual void memWriteback() = 0;
+    /**
+     * Write back dirty blocks in the cache using timing accesses.
+     */
+    virtual void memWritebackTiming() { memWriteback(); }
+    /**
+     * Invalidates all blocks in the cache.
+     *
+     * @warn Dirty cache lines will not be written back to
+     * memory. Make sure to call functionalWriteback() first if you
+     * want the to write them to memory.
+     */
+    virtual void memInvalidate() = 0;
+    /**
+     * Determine if there are any dirty blocks in the cache.
+     *
+     * \return true if at least one block is dirty, false otherwise.
+     */
+    virtual bool isDirty() const = 0;
+
     /** System we are currently operating in. */
     System *system;
 
