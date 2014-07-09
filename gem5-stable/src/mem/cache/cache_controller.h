@@ -19,7 +19,7 @@ class CacheController : public SimObject {
   void DirtyBlock(uint64_t addr, int size);
 
   int block_size() const { return block_size_; }
-  int block_mask() const { return block_mask_; }
+  uint64_t block_mask() const { return block_mask_; }
   int att_length() const { return att_length_; }
 
  private:
@@ -30,7 +30,7 @@ class CacheController : public SimObject {
   std::map<uint64_t, int> blocks_;
   const int block_bits_;
   const int att_length_;
-  uint64_t block_size_;
+  int block_size_;
   uint64_t block_mask_;
 };
 

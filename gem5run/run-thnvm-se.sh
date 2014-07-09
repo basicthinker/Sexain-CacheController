@@ -11,7 +11,8 @@ CPU_CLOCK=3GHz
 
 MEM_TYPE=ddr3_1600_x64
 MEM_SIZE=2GB # for whole physical address space
-ATT_LENGTH=1024
+ATT_LENGTH=256
+BLOCK_BITS=12
 
 L1D_SIZE=32kB
 L1D_ASSOC=8
@@ -81,6 +82,7 @@ OPTIONS+=" --cpu-clock=$CPU_CLOCK"
 OPTIONS+=" --mem-type=$MEM_TYPE"
 OPTIONS+=" --mem-size=$MEM_SIZE"
 OPTIONS+=" --att-length=$ATT_LENGTH"
+OPTIONS+=" --block-bits=$BLOCK_BITS"
 OPTIONS+=" --l1d_size=$L1D_SIZE"
 OPTIONS+=" --l1d_assoc=$L1D_ASSOC"
 OPTIONS+=" --l1i_size=$L1I_SIZE"
