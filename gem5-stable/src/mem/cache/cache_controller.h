@@ -43,6 +43,7 @@ inline CacheController::CacheController(const CacheControllerParams* p) :
 
 inline void CacheController::RegisterCache(BaseCache* const cache) {
   caches_.push_back(cache);
+  std::cout << "# registered cache(s): " << caches_.size() << std::endl;
 }
 
 inline void CacheController::DirtyBlock(uint64_t addr, int size) {
