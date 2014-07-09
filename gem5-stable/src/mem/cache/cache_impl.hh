@@ -141,7 +141,9 @@ Cache<TagStore>::cmpAndSwap(BlkType *blk, PacketPtr pkt)
     if (overwrite_mem) {
         std::memcpy(blk_data, &overwrite_val, pkt->getSize());
         blk->status |= BlkDirty;
-        controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
+        if (controller) {
+            controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
+        }
     }
 }
 
@@ -170,7 +172,9 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
         if (blk->checkWrite(pkt)) {
             pkt->writeDataToBlock(blk->data, blkSize);
             blk->status |= BlkDirty;
-            controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
+            if (controller) {
+                controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
+            }
         }
     } else if (pkt->isRead()) {
         if (pkt->isLLSC()) {
@@ -343,7 +347,9 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
         }
         std::memcpy(blk->data, pkt->getPtr<uint8_t>(), blkSize);
         blk->status |= BlkDirty;
-        controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
+        if (controller) {
+            controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
+        }
         if (pkt->isSupplyExclusive()) {
             blk->status |= BlkWritable;
         }
