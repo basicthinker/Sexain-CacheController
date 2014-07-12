@@ -22,38 +22,60 @@ class CacheController : public SimObject {
   uint64_t block_mask() const { return block_mask_; }
   int att_length() const { return att_length_; }
 
+  int page_size() const { return page_size_; }
+  uint64_t page_mask() const { return page_mask_; }
+  int ptt_length() const { return ptt_length_; }
+
  private:
 
   void WritebackAll();
 
+  uint64_t dram_size_;
   std::vector<BaseCache*> caches_;
+
   std::map<uint64_t, int> blocks_;
   const int block_bits_;
   const int att_length_;
   int block_size_;
   uint64_t block_mask_;
+
+  std::map<uint64_t, int> pages_;
+  const int page_bits_;
+  const int ptt_length_;
+  int page_size_;
+  uint64_t page_mask_;
 };
 
 inline CacheController::CacheController(const CacheControllerParams* p) :
-    SimObject(p), block_bits_(p->block_bits), att_length_(p->att_length) {
+    SimObject(p), dram_size_(p->dram_size),
+    block_bits_(p->block_bits), att_length_(p->att_length),
+    page_bits_(p->page_bits), ptt_length_(p->ptt_length) {
+
   assert(block_bits_ > 0 && att_length_ > 0);
   block_size_ = (1 << block_bits_);
   block_mask_ = block_size_ - 1;
+
+  assert(page_bits_ > 0 && ptt_length_ > 0);
+  page_size_ = (1 << page_bits_);
+  page_mask_ = page_size_ - 1;
 }
 
 inline void CacheController::RegisterCache(BaseCache* const cache) {
   caches_.push_back(cache);
-  std::cout << "# registered cache(s): " << caches_.size() << std::endl;
 }
 
 inline void CacheController::DirtyBlock(uint64_t addr, int size) {
   uint64_t begin = addr & ~block_mask();
   uint64_t end = (addr + size - 1) & ~block_mask();
   for (uint64_t a = begin; a <= end; a += block_size()) {
-    ++blocks_[a];
+    if (a < dram_size_) {
+      ++pages_[a & ~page_mask()];
+    } else {
+      ++blocks_[a];
+    }
   }
 
-  if (blocks_.size() == att_length_) {
+  if (blocks_.size() == att_length_ || pages_.size() == ptt_length_) {
     WritebackAll();
   }
 }
@@ -63,7 +85,9 @@ inline void CacheController::WritebackAll() {
       it != caches_.end(); ++it) {
     (*it)->memWritebackTiming();
   }
+
   blocks_.clear();
+  pages_.clear();
 }
 
 #endif // SEXAIN_CACHE_CONTROLLER_H_
