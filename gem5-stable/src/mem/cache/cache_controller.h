@@ -49,7 +49,7 @@ inline CacheController::CacheController(const CacheControllerParams* p) :
     SimObject(p), dram_size_(p->dram_size), cache_(NULL),
     block_bits_(p->block_bits), att_length_(p->att_length),
     page_bits_(p->page_bits), ptt_length_(p->ptt_length) {
-
+  /*
   assert(block_bits_ > 0 && att_length_ > 0);
   block_size_ = (1 << block_bits_);
   block_mask_ = block_size_ - 1;
@@ -57,11 +57,12 @@ inline CacheController::CacheController(const CacheControllerParams* p) :
   assert(page_bits_ > 0 && ptt_length_ > 0);
   page_size_ = (1 << page_bits_);
   page_mask_ = page_size_ - 1;
+  */
 }
 
 inline void CacheController::RegisterCache(BaseCache* const cache) {
   assert(!cache_);
-  cache_ = cache;
+  //cache_ = cache;
 }
 
 inline void CacheController::Flush() {

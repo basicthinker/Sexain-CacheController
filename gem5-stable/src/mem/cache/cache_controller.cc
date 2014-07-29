@@ -4,6 +4,7 @@
 #include "mem/cache/cache_controller.h"
 
 void CacheController::DirtyBlock(uint64_t addr, int size) {
+  /*
   assert(blocks_.size() <= att_length_ && pages_.size() <= ptt_length_);
   uint64_t begin = addr & ~block_mask();
   uint64_t end = (addr + size - 1) & ~block_mask();
@@ -21,6 +22,7 @@ void CacheController::DirtyBlock(uint64_t addr, int size) {
       ++blocks_[a];
     }
   }
+  */
 }
 
 CacheController* CacheControllerParams::create() {
