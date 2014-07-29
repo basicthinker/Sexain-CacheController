@@ -127,9 +127,8 @@ parser.add_option("--ptt-length", type="int", default=0,
         help="Number of the secondary page table entries (for static mapping)")
 parser.add_option("--page-bits", type="int", default=12,
         help="Number of bits of page in the secondary page table")
-
-parser.add_option("--att-latency", action="store_true", default=False,
-        help="Whether to enable ATT latency")
+parser.add_option("--reserved-writes", type="int",
+        help="Number of reserved writeback buffers in caches")
 
 parser.add_option("--cpu-2006", default="", type="string",
         help="The CPU 2006 benchmark to be loaded.")
@@ -156,8 +155,6 @@ def config_fingerprint(options):
     fp = 'a' + str(options.att_length)
     fp += '-p' + str(options.ptt_length)
     fp += '-d' + options.dram_size
-    if options.att_latency:
-        fp += '-lat'
     return fp
 
 fp = config_fingerprint(options)
@@ -318,8 +315,8 @@ if options.ruby:
 else:
     system.membus = CoherentBus()
     system.system_port = system.membus.slave
-    CacheConfig.config_cache(options, system)
     MemConfig.config_mem(options, system)
+    CacheConfig.config_cache(options, system)
 
 root = Root(full_system = False, system = system)
 Simulation.run(options, root, system, FutureClass)

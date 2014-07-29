@@ -75,11 +75,12 @@ class BaseCache(MemObject):
     write_buffers = Param.Int(8, "number of write buffers")
     num_reserved = Param.Int(1024, "number of reserved buffers")
     prefetch_on_access = Param.Bool(False,
-         "notify the hardware prefetcher on every access (not just misses)")
+        "notify the hardware prefetcher on every access (not just misses)")
     prefetcher = Param.BasePrefetcher(NULL,"Prefetcher attached to cache")
     cpu_side = SlavePort("Port on side closer to CPU")
     mem_side = MasterPort("Port on side closer to MEM")
-    addr_ranges = VectorParam.AddrRange([AllMemory], "The address range for the CPU-side port")
+    addr_ranges = VectorParam.AddrRange([AllMemory],
+        "The address range for the CPU-side port")
     system = Param.System(Parent.any, "System we belong to")
     tags = Param.BaseTags(LRU(), "Tag Store for LRU caches")
     controller = Param.CacheController(NULL, "THNVM cache controller")

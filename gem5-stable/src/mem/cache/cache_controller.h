@@ -27,11 +27,8 @@ class CacheController : public SimObject {
   int ptt_length() const { return ptt_length_; }
 
  private:
-
-  void WritebackAll();
-
   uint64_t dram_size_;
-  std::vector<BaseCache*> caches_;
+  BaseCache* cache_;
 
   std::map<uint64_t, int> blocks_;
   const int block_bits_;
@@ -47,7 +44,7 @@ class CacheController : public SimObject {
 };
 
 inline CacheController::CacheController(const CacheControllerParams* p) :
-    SimObject(p), dram_size_(p->dram_size),
+    SimObject(p), dram_size_(p->dram_size), cache_(NULL),
     block_bits_(p->block_bits), att_length_(p->att_length),
     page_bits_(p->page_bits), ptt_length_(p->ptt_length) {
 
@@ -61,33 +58,8 @@ inline CacheController::CacheController(const CacheControllerParams* p) :
 }
 
 inline void CacheController::RegisterCache(BaseCache* const cache) {
-  caches_.push_back(cache);
-}
-
-inline void CacheController::DirtyBlock(uint64_t addr, int size) {
-  uint64_t begin = addr & ~block_mask();
-  uint64_t end = (addr + size - 1) & ~block_mask();
-  for (uint64_t a = begin; a <= end; a += block_size()) {
-    if (a < dram_size_) {
-      ++pages_[a & ~page_mask()];
-    } else {
-      ++blocks_[a];
-    }
-  }
-
-  if (blocks_.size() == att_length_ || pages_.size() == ptt_length_) {
-    WritebackAll();
-  }
-}
-
-inline void CacheController::WritebackAll() {
-  for(std::vector<BaseCache*>::iterator it = caches_.begin();
-      it != caches_.end(); ++it) {
-    (*it)->memWritebackTiming();
-  }
-
-  blocks_.clear();
-  pages_.clear();
+  assert(!cache_);
+  cache_ = cache;
 }
 
 #endif // SEXAIN_CACHE_CONTROLLER_H_
