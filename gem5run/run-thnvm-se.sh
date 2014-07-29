@@ -14,7 +14,7 @@ MEM_SIZE=2GB # for whole physical address space
 DRAM_SIZE=0GB
 ATT_LEN=6144
 BLOCK_BITS=6
-PTT_LEN=4096 # secondary page table length
+PTT_LEN=4128
 PAGE_BITS=12
 
 L1D_SIZE=32kB

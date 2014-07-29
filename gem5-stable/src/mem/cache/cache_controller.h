@@ -27,6 +27,8 @@ class CacheController : public SimObject {
   int ptt_length() const { return ptt_length_; }
 
  private:
+  void Flush();
+
   uint64_t dram_size_;
   BaseCache* cache_;
 
@@ -60,6 +62,12 @@ inline CacheController::CacheController(const CacheControllerParams* p) :
 inline void CacheController::RegisterCache(BaseCache* const cache) {
   assert(!cache_);
   cache_ = cache;
+}
+
+inline void CacheController::Flush() {
+  cache_->writebackAllTiming();
+  blocks_.clear();
+  pages_.clear();
 }
 
 #endif // SEXAIN_CACHE_CONTROLLER_H_
