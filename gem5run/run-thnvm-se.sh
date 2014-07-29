@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GEM5ROOT=~/Projects/Sexain-CacheController/gem5-stable
+GEM5ROOT=~/Projects/gem5-NVM/gem5-stable
 ARCH=X86 #X86_MESI_CMP_directory # in ./build_opts
 GEM5=$GEM5ROOT/build/$ARCH/gem5.opt
 SE_SCRIPT=$GEM5ROOT/configs/thnvm-se.py
@@ -12,9 +12,9 @@ CPU_CLOCK=3GHz
 MEM_TYPE=simple_mem # ddr3_1600_x64
 MEM_SIZE=2GB # for whole physical address space
 DRAM_SIZE=0GB
-ATT_LEN=6144
+ATT_LEN=0
 BLOCK_BITS=6
-PTT_LEN=4128
+PTT_LEN=0
 PAGE_BITS=12
 
 L1D_SIZE=32kB
@@ -28,7 +28,7 @@ L2_ASSOC=8
 L3_SIZE=$((2*NUM_CPUS))MB
 L3_ASSOC=16
 
-RESV_WRITES=35000
+RESV_WRITES=2048
 
 CPU2006ROOT=~/Share/spec-cpu-2006/benchspec/CPU2006
 OUT_DIR=~/Documents/gem5out-a$ATT_LEN-p$PTT_LEN-d$DRAM_SIZE
@@ -49,7 +49,7 @@ while getopts "hc:o:b:g:a:t" opt; do
       to_run=1
       ;;
     o)
-      COMMAND+=' -o "'$OPTARG'"'
+      ARGS=$OPTARG
       ;;
     b)
       COMMAND="--cpu-2006=$OPTARG"
@@ -100,7 +100,11 @@ OPTIONS+=" --cpu-2006-build-name=$BUILD_NAME"
 OPTIONS+=" --reserved-writes=$RESV_WRITES"
 
 if [ $to_run = 1 ]; then
-  $GEM5 -d $OUT_DIR/$ALIAS $GEM5OPT $SE_SCRIPT $OPTIONS $COMMAND
+  if [ -z "$ARGS" ]; then
+    $GEM5 -d $OUT_DIR/$ALIAS $GEM5OPT $SE_SCRIPT $OPTIONS $COMMAND
+  else
+    $GEM5 -d $OUT_DIR/$ALIAS $GEM5OPT $SE_SCRIPT $OPTIONS $COMMAND -o "$ARGS"
+  fi
 fi
 
 if [ $? -eq 0 ] && [ $to_test = 1 ]; then
