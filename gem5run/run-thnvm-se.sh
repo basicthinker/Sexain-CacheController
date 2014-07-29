@@ -11,7 +11,7 @@ CPU_CLOCK=3GHz
 
 MEM_TYPE=simple_mem # ddr3_1600_x64
 MEM_SIZE=2GB # for whole physical address space
-DRAM_SIZE=0GB
+DRAM_SIZE=2GB
 ATT_LEN=0
 BLOCK_BITS=6
 PTT_LEN=0
