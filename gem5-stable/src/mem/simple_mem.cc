@@ -48,12 +48,15 @@
 using namespace std;
 
 SimpleMemory::SimpleMemory(const SimpleMemoryParams* p) :
-    AbstractMemory(p),
-    port(name() + ".port", *this), latency(p->latency),
-    latency_var(p->latency_var), bandwidth(p->bandwidth), isBusy(false),
+    AbstractMemory(p), port(name() + ".port", *this),
+    latency(p->latency), latency_var(p->latency_var),
+    tTableOp(p->lat_table_op),
+    tNVMRead(p->lat_nvm_read), tNVMWrite(p->lat_nvm_write),
+    bandwidth(p->bandwidth), isBusy(false),
     retryReq(false), retryResp(false),
     releaseEvent(this), dequeueEvent(this), drainManager(NULL)
 {
+    wbBandwidth = (double)latency / 64;
 }
 
 void
@@ -64,6 +67,20 @@ SimpleMemory::init()
     if (port.isConnected()) {
         port.sendRangeChange();
     }
+}
+
+void
+SimpleMemory::regStats()
+{
+    using namespace Stats;
+    AbstractMemory::regStats();
+
+    extraRespLatency
+        .name(name() + ".extra_resp_latency")
+        .desc("Incremental latency of individual access");
+    totalCkptTime
+        .name(name() + ".total_ckpt_time")
+        .desc("Total time in checkpointing frames");
 }
 
 Tick
@@ -117,6 +134,20 @@ SimpleMemory::recvTimingReq(PacketPtr pkt)
         return false;
     }
 
+    if (pkt->cmd == MemCmd::SwapReq || pkt->isWrite()) {
+        Addr tag = pkt->getAddr() >> tableBlockBits;
+        if (tableBlocks.size() == tableLength && !tableBlocks.count(tag)) {
+            int bytes = tableLength * tableBlockSize() *
+                    (1 + (tableBlockBits == 6)); // workaround for detecting scheme
+            Tick duration = bytes * wbBandwidth;
+            duration += tTableOp;
+            schedule(releaseEvent, curTick() + duration);
+            isBusy = true;
+            retryReq = true;
+            return false;
+        }
+    }
+
     // @todo someone should pay for this
     pkt->busFirstWordDelay = pkt->busLastWordDelay = 0;
 
@@ -151,10 +182,12 @@ SimpleMemory::recvTimingReq(PacketPtr pkt)
         // recvAtomic() should already have turned packet into
         // atomic response
         assert(pkt->isResponse());
+        Tick lat = getLatency();
+        lat += tTableOp;
         // to keep things simple (and in order), we put the packet at
         // the end even if the latency suggests it should be sent
         // before the packet(s) before it
-        packetQueue.push_back(DeferredPacket(pkt, curTick() + getLatency()));
+        packetQueue.push_back(DeferredPacket(pkt, curTick() + lat));
         if (!retryResp && !dequeueEvent.scheduled())
             schedule(dequeueEvent, packetQueue.back().tick);
     } else {

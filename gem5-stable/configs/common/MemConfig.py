@@ -40,6 +40,7 @@ import m5.objects
 import inspect
 import sys
 from textwrap import  TextWrapper
+from m5.util import *
 
 # Dictionary of mapping names of real memory controller models to
 # classes.
@@ -156,7 +157,19 @@ def config_mem(options, system):
         for i in xrange(nbr_mem_ctrls):
             # Create an instance so we can figure out the address
             # mapping and row-buffer size
-            ctrl = cls()
+            if issubclass(cls, m5.objects.AbstractMemory):
+                assert convert.toMemorySize(options.dram_size) == 0 or \
+                        options.dram_size == options.mem_size
+                if convert.toMemorySize(options.dram_size) == 0: # journaling
+                    table_len = options.att_length
+                    blk_bits = options.block_bits
+                else: # shadow paging
+                    table_len = options.ptt_length
+                    blk_bits = options.page_bits
+                ctrl = cls(table_length=table_len,
+                        table_block_bits=blk_bits)
+            else:
+                ctrl = cls()
 
             # Only do this for DRAMs
             if issubclass(cls, m5.objects.SimpleDRAM):

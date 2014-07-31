@@ -49,6 +49,8 @@
 #ifndef __ABSTRACT_MEMORY_HH__
 #define __ABSTRACT_MEMORY_HH__
 
+#include <unordered_set>
+
 #include "mem/mem_object.hh"
 #include "params/AbstractMemory.hh"
 #include "sim/stats.hh"
@@ -115,6 +117,12 @@ class AbstractMemory : public MemObject
 
     // Should the memory appear in the global address map
     bool inAddrMap;
+
+    std::unordered_set<uint64_t> tableBlocks;
+    const int tableLength;
+    const int tableBlockBits;
+
+    int tableBlockSize() { return 1 << tableBlockBits; }
 
     std::list<LockedAddr> lockedAddrList;
 

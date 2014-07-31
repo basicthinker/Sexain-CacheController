@@ -120,6 +120,10 @@ class SimpleMemory : public AbstractMemory
      */
     const Tick latency_var;
 
+    const Tick tTableOp; // for journaling or shadow paging
+    const Tick tNVMRead;
+    const Tick tNVMWrite;
+
     /**
      * Internal (unbounded) storage to mimic the delay caused by the
      * actual memory access. Note that this is where the packet spends
@@ -133,6 +137,9 @@ class SimpleMemory : public AbstractMemory
      * the regulation.
      */
     const double bandwidth;
+
+    /** Effective bandwidth to estimate writeback duration */
+    double wbBandwidth;
 
     /**
      * Track the state of the memory as either idle or busy, no need
@@ -197,7 +204,17 @@ class SimpleMemory : public AbstractMemory
                                 PortID idx = InvalidPortID);
     void init();
 
+    /**
+     * Register Statistics
+     */
+    virtual void regStats();
+
   protected:
+
+    /** Incremental latency of individual access */
+    Stats::Scalar extraRespLatency;
+    /** Total time in checkpointing frames */
+    Stats::Scalar totalCkptTime;
 
     Tick recvAtomic(PacketPtr pkt);
 
@@ -210,3 +227,4 @@ class SimpleMemory : public AbstractMemory
 };
 
 #endif //__SIMPLE_MEMORY_HH__
+

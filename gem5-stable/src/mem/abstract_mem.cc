@@ -55,6 +55,7 @@ using namespace std;
 AbstractMemory::AbstractMemory(const Params *p) :
     MemObject(p), range(params()->range), pmemAddr(NULL),
     confTableReported(p->conf_table_reported), inAddrMap(p->in_addr_map),
+    tableLength(p->table_length), tableBlockBits(p->table_block_bits),
     _system(NULL)
 {
     if (size() % TheISA::PageBytes != 0)
@@ -347,8 +348,11 @@ AbstractMemory::access(PacketPtr pkt)
                 panic("Invalid size for conditional read/write\n");
         }
 
-        if (overwrite_mem)
+        if (overwrite_mem) {
+            tableBlocks.insert(pkt->getAddr() >> tableBlockBits);
+            assert(tableBlocks.size() <= tableLength);
             std::memcpy(hostAddr, &overwrite_val, pkt->getSize());
+        }
 
         assert(!pkt->req->isInstFetch());
         TRACE_PACKET("Read/Write");
@@ -368,6 +372,8 @@ AbstractMemory::access(PacketPtr pkt)
     } else if (pkt->isWrite()) {
         if (writeOK(pkt)) {
             if (pmemAddr) {
+                tableBlocks.insert(pkt->getAddr() >> tableBlockBits);
+                assert(tableBlocks.size() <= tableLength);
                 memcpy(hostAddr, pkt->getPtr<uint8_t>(), pkt->getSize());
                 DPRINTF(MemoryAccess, "%s wrote %x bytes to address %x\n",
                         __func__, pkt->getSize(), pkt->getAddr());
