@@ -171,6 +171,12 @@ class AbstractMemory : public MemObject
     Stats::Vector numWrites;
     /** Number of other requests */
     Stats::Vector numOther;
+
+    /** Number of epochs */
+    Stats::Scalar numEpochs;
+    /** Data transfer through channel in bytes */
+    Stats::Scalar bytesChannel;
+
     /** Read bandwidth from this memory */
     Stats::Formula bwRead;
     /** Read bandwidth from this memory */

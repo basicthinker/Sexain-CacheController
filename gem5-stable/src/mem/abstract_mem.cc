@@ -129,6 +129,14 @@ AbstractMemory::regStats()
     for (int i = 0; i < system()->maxMasters(); i++) {
         numOther.subname(i, system()->getMasterName(i));
     }
+
+    numEpochs
+        .name(name() + ".num_epochs")
+        .desc("Total number of epochs");
+    bytesChannel
+        .name(name() + ".bytes_channel")
+        .desc("Data transfer through channel");
+
     bwRead
         .name(name() + ".bw_read")
         .desc("Total read bandwidth from this memory (bytes/s)")
@@ -352,6 +360,7 @@ AbstractMemory::access(PacketPtr pkt)
             tableBlocks.insert(pkt->getAddr() >> tableBlockBits);
             assert(tableBlocks.size() <= tableLength);
             std::memcpy(hostAddr, &overwrite_val, pkt->getSize());
+            bytesChannel += pkt->getSize();
         }
 
         assert(!pkt->req->isInstFetch());
@@ -382,6 +391,7 @@ AbstractMemory::access(PacketPtr pkt)
             TRACE_PACKET("Write");
             numWrites[pkt->req->masterId()]++;
             bytesWritten[pkt->req->masterId()] += pkt->getSize();
+            bytesChannel += pkt->getSize();
         }
     } else if (pkt->isInvalidate()) {
         // no need to do anything

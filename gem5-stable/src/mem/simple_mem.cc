@@ -142,6 +142,10 @@ SimpleMemory::recvTimingReq(PacketPtr pkt)
             Tick duration = bytes * wbBandwidth;
             duration += tTableOp;
             schedule(releaseEvent, curTick() + duration);
+            tableBlocks.clear();
+            totalCkptTime += duration;
+            bytesChannel += bytes;
+            ++numEpochs;
             isBusy = true;
             retryReq = true;
             return false;
