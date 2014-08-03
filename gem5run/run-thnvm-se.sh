@@ -11,7 +11,7 @@ CPU_CLOCK=3GHz
 
 MEM_TYPE=simple_mem # ddr3_1600_x64
 MEM_SIZE=2GB # for whole physical address space
-DRAM_SIZE=0GB
+DRAM_SIZE=0GB # switch for journaling or shadow paging
 ATT_LEN=6144
 BLOCK_BITS=6
 PTT_LEN=4128
@@ -49,7 +49,7 @@ while getopts "hc:o:b:g:a:t" opt; do
       to_run=1
       ;;
     o)
-      COMMAND+=' -o "'$OPTARG'"'
+      ARGS=$OPTARG
       ;;
     b)
       COMMAND="--cpu-2006=$OPTARG"
@@ -100,7 +100,11 @@ OPTIONS+=" --cpu-2006-build-name=$BUILD_NAME"
 OPTIONS+=" --reserved-writes=$RESV_WRITES"
 
 if [ $to_run = 1 ]; then
-  $GEM5 -d $OUT_DIR/$ALIAS $GEM5OPT $SE_SCRIPT $OPTIONS $COMMAND
+  if [ -z "$ARGS" ]; then
+    $GEM5 -d $OUT_DIR/$ALIAS $GEM5OPT $SE_SCRIPT $OPTIONS $COMMAND
+  else
+    $GEM5 -d $OUT_DIR/$ALIAS $GEM5OPT $SE_SCRIPT $OPTIONS $COMMAND -o "$ARGS"
+  fi
 fi
 
 if [ $? -eq 0 ] && [ $to_test = 1 ]; then

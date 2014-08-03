@@ -49,7 +49,10 @@ using namespace std;
 
 SimpleMemory::SimpleMemory(const SimpleMemoryParams* p) :
     AbstractMemory(p), port(name() + ".port", *this),
-    latency(p->latency), latency_var(p->latency_var),
+    latency(p->latency),
+    latency_miss(p->latency_miss),
+    banks(uint64_t(1) << ceilLog2(size() + tableLength * tableBlockSize())),
+    latency_var(p->latency_var),
     tTableOp(p->lat_table_op),
     tNVMRead(p->lat_nvm_read), tNVMWrite(p->lat_nvm_write),
     bandwidth(p->bandwidth), isBusy(false),
@@ -81,6 +84,22 @@ SimpleMemory::regStats()
     totalCkptTime
         .name(name() + ".total_ckpt_time")
         .desc("Total time in checkpointing frames");
+
+    readRowHits
+        .name(name() + ".readRowHits")
+        .desc("Number of row buffer hits during reads");
+
+    writeRowHits
+        .name(name() + ".writeRowHits")
+        .desc("Number of row buffer hits during writes");
+
+    readRowMisses
+        .name(name() + ".readRowMisses")
+        .desc("Number of row buffer misses during reads");
+
+    writeRowMisses
+        .name(name() + ".writeRowMisses")
+        .desc("Number of row buffer misses during writes");
 }
 
 Tick
@@ -134,11 +153,12 @@ SimpleMemory::recvTimingReq(PacketPtr pkt)
         return false;
     }
 
-    if (pkt->cmd == MemCmd::SwapReq || pkt->isWrite()) {
-        Addr tag = pkt->getAddr() >> tableBlockBits;
+    const Addr tag = pkt->getAddr() >> tableBlockBits;
+    if (pkt->cmd != MemCmd::SwapReq && pkt->isWrite()) {
         if (tableBlocks.size() == tableLength && !tableBlocks.count(tag)) {
             int bytes = tableLength * tableBlockSize() *
-                    (1 + (tableBlockBits == 6)); // workaround for detecting scheme
+                    (1 + (tableBlockBits == 6)); // workaround for detecting
+            bytes += tableLength * 12; // update NVM data structures
             Tick duration = bytes * wbBandwidth;
             duration += tTableOp;
             schedule(releaseEvent, curTick() + duration);
@@ -177,6 +197,15 @@ SimpleMemory::recvTimingReq(PacketPtr pkt)
         }
     }
 
+    Tick lat = 0;
+    bool is_dram = tableBlocks.count(tag);
+    Addr mach_addr = is_dram ? size() : pkt->getAddr();
+    if (pkt->isRead()) {
+        lat = GetReadLatency(mach_addr, is_dram);
+    } else if (pkt->isWrite()) {
+        lat = GetWriteLatency(mach_addr, is_dram);
+    }
+
     // go ahead and deal with the packet and put the response in the
     // queue if there is one
     bool needsResponse = pkt->needsResponse();
@@ -186,7 +215,7 @@ SimpleMemory::recvTimingReq(PacketPtr pkt)
         // recvAtomic() should already have turned packet into
         // atomic response
         assert(pkt->isResponse());
-        Tick lat = getLatency();
+        if (!lat) lat = getLatency();
         lat += tTableOp;
         // to keep things simple (and in order), we put the packet at
         // the end even if the latency suggests it should be sent
@@ -242,6 +271,30 @@ SimpleMemory::getLatency() const
 {
     return latency +
         (latency_var ? random_mt.random<Tick>(0, latency_var) : 0);
+}
+
+uint64_t
+SimpleMemory::GetReadLatency(Addr mach_addr, bool is_dram)
+{
+    if (banks.access(mach_addr)) {
+        ++readRowHits;
+        return latency;
+    } else {
+        ++readRowMisses;
+        return is_dram ? latency_miss : tNVMRead;
+    }
+}
+
+uint64_t
+SimpleMemory::GetWriteLatency(Addr mach_addr, bool is_dram)
+{
+    if (banks.access(mach_addr)) {
+        ++writeRowHits;
+        return latency;
+    } else {
+        ++writeRowMisses;
+        return is_dram ? latency_miss : tNVMWrite;
+    }
 }
 
 void
