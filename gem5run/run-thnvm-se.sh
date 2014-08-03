@@ -4,6 +4,7 @@ GEM5ROOT=~/Projects/gem5-NVM/gem5-stable
 ARCH=X86 #X86_MESI_CMP_directory # in ./build_opts
 GEM5=$GEM5ROOT/build/$ARCH/gem5.opt
 SE_SCRIPT=$GEM5ROOT/configs/thnvm-se.py
+MAXINSTS=$((1024*1024*1024))
 
 CPU_TYPE=timing # atomic, detailed
 NUM_CPUS=1
@@ -55,7 +56,7 @@ while getopts "hc:o:b:g:a:t" opt; do
       COMMAND="--cpu-2006=$OPTARG"
       ALIAS=$OPTARG
       to_run=1
-      to_test=1
+      to_test=0
       ;;
     t)
       ALIAS=$OPTARG
@@ -76,6 +77,7 @@ done
 
 OUT_DIR+='-'`date +%m%d`
 
+OPTIONS+=" -I $MAXINSTS"
 OPTIONS+=" --caches --l2cache --l3cache"
 OPTIONS+=" --cpu-type=$CPU_TYPE"
 OPTIONS+=" --num-cpus=$NUM_CPUS"
