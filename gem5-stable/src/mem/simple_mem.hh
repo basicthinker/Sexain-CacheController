@@ -53,6 +53,7 @@
 
 #include "mem/abstract_mem.hh"
 #include "mem/port.hh"
+#include "mem/dram_banks.h"
 #include "params/SimpleMemory.hh"
 
 /**
@@ -115,6 +116,10 @@ class SimpleMemory : public AbstractMemory
      */
     const Tick latency;
 
+    const Tick latency_miss;
+
+    DDR3Banks banks;
+
     /**
      * Fudge factor added to the latency.
      */
@@ -175,6 +180,9 @@ class SimpleMemory : public AbstractMemory
      */
     Tick getLatency() const;
 
+    uint64_t GetReadLatency(Addr mach_addr);
+    uint64_t GetWriteLatency(Addr mach_addr);
+
     /** @todo this is a temporary workaround until the 4-phase code is
      * committed. upstream caches needs this packet until true is returned, so
      * hold onto it for deletion until a subsequent call
@@ -197,7 +205,18 @@ class SimpleMemory : public AbstractMemory
                                 PortID idx = InvalidPortID);
     void init();
 
+    /**
+     * Register Statistics
+     */
+    virtual void regStats();
+
   protected:
+
+    // Row hit/miss count and rate
+    Stats::Scalar readRowHits;
+    Stats::Scalar writeRowHits;
+    Stats::Scalar readRowMisses;
+    Stats::Scalar writeRowMisses;
 
     Tick recvAtomic(PacketPtr pkt);
 

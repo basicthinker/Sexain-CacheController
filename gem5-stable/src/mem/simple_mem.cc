@@ -48,8 +48,10 @@
 using namespace std;
 
 SimpleMemory::SimpleMemory(const SimpleMemoryParams* p) :
-    AbstractMemory(p),
-    port(name() + ".port", *this), latency(p->latency),
+    AbstractMemory(p), port(name() + ".port", *this),
+    latency(p->latency),
+    latency_miss(p->latency_miss),
+    banks(uint64_t(1) << ceilLog2(size())),
     latency_var(p->latency_var), bandwidth(p->bandwidth), isBusy(false),
     retryReq(false), retryResp(false),
     releaseEvent(this), dequeueEvent(this), drainManager(NULL)
@@ -64,6 +66,29 @@ SimpleMemory::init()
     if (port.isConnected()) {
         port.sendRangeChange();
     }
+}
+
+void
+SimpleMemory::regStats()
+{
+    using namespace Stats;
+    AbstractMemory::regStats();
+
+    readRowHits
+        .name(name() + ".readRowHits")
+        .desc("Number of row buffer hits during reads");
+
+    writeRowHits
+        .name(name() + ".writeRowHits")
+        .desc("Number of row buffer hits during writes");
+
+    readRowMisses
+        .name(name() + ".readRowMisses")
+        .desc("Number of row buffer misses during reads");
+
+    writeRowMisses
+        .name(name() + ".writeRowMisses")
+        .desc("Number of row buffer misses during writes");
 }
 
 Tick
@@ -142,6 +167,13 @@ SimpleMemory::recvTimingReq(PacketPtr pkt)
         }
     }
 
+    Tick lat = 0;
+    if (pkt->isRead()) {
+        lat = GetReadLatency(pkt->getAddr());
+    } else if (pkt->isWrite()) {
+        lat = GetWriteLatency(pkt->getAddr());
+    }
+
     // go ahead and deal with the packet and put the response in the
     // queue if there is one
     bool needsResponse = pkt->needsResponse();
@@ -151,10 +183,11 @@ SimpleMemory::recvTimingReq(PacketPtr pkt)
         // recvAtomic() should already have turned packet into
         // atomic response
         assert(pkt->isResponse());
+        if (!lat) lat = getLatency();
         // to keep things simple (and in order), we put the packet at
         // the end even if the latency suggests it should be sent
         // before the packet(s) before it
-        packetQueue.push_back(DeferredPacket(pkt, curTick() + getLatency()));
+        packetQueue.push_back(DeferredPacket(pkt, curTick() + lat));
         if (!retryResp && !dequeueEvent.scheduled())
             schedule(dequeueEvent, packetQueue.back().tick);
     } else {
@@ -205,6 +238,30 @@ SimpleMemory::getLatency() const
 {
     return latency +
         (latency_var ? random_mt.random<Tick>(0, latency_var) : 0);
+}
+
+uint64_t
+SimpleMemory::GetReadLatency(Addr mach_addr)
+{
+    if (banks.access(mach_addr)) {
+        ++readRowHits;
+        return latency;
+    } else {
+        ++readRowMisses;
+        return latency_miss;
+    }
+}
+
+uint64_t
+SimpleMemory::GetWriteLatency(Addr mach_addr)
+{
+    if (banks.access(mach_addr)) {
+        ++writeRowHits;
+        return latency;
+    } else {
+        ++writeRowMisses;
+        return latency_miss;
+    }
 }
 
 void
