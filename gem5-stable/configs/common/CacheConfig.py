@@ -64,32 +64,22 @@ def config_cache(options, system):
     system.cache_line_size = options.cacheline_size
 
     if options.l3cache:
-        l3cc = CacheController(dram_size=options.dram_size,
-                block_bits=options.block_bits, att_length=options.att_length,
-                page_bits=options.page_bits, ptt_length=options.ptt_length)
         system.l3cache = L3Cache(clk_domain=system.cpu_clk_domain,
                                  size=options.l3_size,
-                                 assoc=options.l3_assoc,
-                                 controller=l3cc,
-                                 num_reserved=options.reserved_writes)
+                                 assoc=options.l3_assoc)
 
         system.tol3bus = CoherentBus(clk_domain = system.cpu_clk_domain,
                                      width = 32)
         system.l3cache.cpu_side = system.tol3bus.master
         system.l3cache.mem_side = system.membus.slave
     elif options.l2cache:
-        l2cc = CacheController(dram_size=options.dram_size,
-                block_bits=options.block_bits, att_length=options.att_length,
-                page_bits=options.page_bits, ptt_length=options.ptt_length)
         # Provide a clock for the L2 and the L1-to-L2 bus here as they
         # are not connected using addTwoLevelCacheHierarchy. Use the
         # same clock as the CPUs, and set the L1-to-L2 bus width to 32
         # bytes (256 bits).
         system.l2 = l2_cache_class(clk_domain=system.cpu_clk_domain,
                                    size=options.l2_size,
-                                   assoc=options.l2_assoc,
-                                   controller=l2cc,
-                                   num_reserved=options.reserved_writes)
+                                   assoc=options.l2_assoc)
 
         system.tol2bus = CoherentBus(clk_domain = system.cpu_clk_domain,
                                      width = 32)
@@ -100,15 +90,8 @@ def config_cache(options, system):
         if options.caches:
             icache = icache_class(size=options.l1i_size,
                                   assoc=options.l1i_assoc)
-            dcc = CacheController(dram_size=options.dram_size,
-                    block_bits=options.block_bits,
-                    att_length=options.att_length,
-                    page_bits=options.page_bits,
-                    ptt_length=options.ptt_length)
             dcache = dcache_class(size=options.l1d_size,
-                                  assoc=options.l1d_assoc,
-                                  controller=dcc,
-                                  num_reserved=options.reserved_writes)
+                                  assoc=options.l1d_assoc)
 
             if buildEnv['TARGET_ISA'] == 'x86':
                 iwc = PageTableWalkerCache()
@@ -118,16 +101,9 @@ def config_cache(options, system):
             # When connecting the caches, the clock is also inherited
             # from the CPU in question
             if options.l3cache:
-                l2cc = CacheController(dram_size=options.dram_size,
-                        block_bits=options.block_bits,
-                        att_length=options.att_length,
-                        page_bits=options.page_bits,
-                        ptt_length=options.ptt_length)
                 l2c = l2_cache_class(clk_domain=system.cpu_clk_domain,
                                      size=options.l2_size,
-                                     assoc=options.l2_assoc,
-                                     controller=l2cc,
-                                     num_reserved=options.reserved_writes)
+                                     assoc=options.l2_assoc)
                 system.cpu[i].addTwoLevelCacheHierarchy(icache, dcache,
                                                         l2c, iwc, dwc)
             else:

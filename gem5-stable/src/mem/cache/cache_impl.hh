@@ -65,8 +65,6 @@
 #include "mem/cache/mshr.hh"
 #include "sim/sim_exit.hh"
 
-#include "mem/cache/cache_controller.h"
-
 template<class TagStore>
 Cache<TagStore>::Cache(const Params *p)
     : BaseCache(p),
@@ -141,9 +139,6 @@ Cache<TagStore>::cmpAndSwap(BlkType *blk, PacketPtr pkt)
     if (overwrite_mem) {
         std::memcpy(blk_data, &overwrite_val, pkt->getSize());
         blk->status |= BlkDirty;
-        if (controller) {
-            controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
-        }
     }
 }
 
@@ -172,9 +167,6 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
         if (blk->checkWrite(pkt)) {
             pkt->writeDataToBlock(blk->data, blkSize);
             blk->status |= BlkDirty;
-            if (controller) {
-                controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
-            }
         }
     } else if (pkt->isRead()) {
         if (pkt->isLLSC()) {
@@ -347,9 +339,6 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
         }
         std::memcpy(blk->data, pkt->getPtr<uint8_t>(), blkSize);
         blk->status |= BlkDirty;
-        if (controller) {
-            controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
-        }
         if (pkt->isSupplyExclusive()) {
             blk->status |= BlkWritable;
         }
@@ -1106,15 +1095,6 @@ Cache<TagStore>::memWriteback()
 
 template<class TagStore>
 void
-Cache<TagStore>::writebackAllTiming()
-{
-    BaseCache::writebackAllTiming();
-    WrappedBlkVisitor visitor(*this, &Cache<TagStore>::writebackTimingVisitor);
-    tags->forEachBlk(visitor);
-}
-
-template<class TagStore>
-void
 Cache<TagStore>::memInvalidate()
 {
     WrappedBlkVisitor visitor(*this, &Cache<TagStore>::invalidateVisitor);
@@ -1149,17 +1129,6 @@ Cache<TagStore>::writebackVisitor(BlkType &blk)
         blk.status &= ~BlkDirty;
     }
 
-    return true;
-}
-
-template<class TagStore>
-bool
-Cache<TagStore>::writebackTimingVisitor(BlkType &blk)
-{
-    if (blk.isDirty()) {
-        PacketPtr p = writebackBlk(&blk);
-        allocateWriteBuffer(p, clockEdge(hitLatency), true);
-    }
     return true;
 }
 
@@ -1286,12 +1255,8 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
         // there are cases (such as failed store conditionals or
         // compare-and-swaps) where we'll demand an exclusive copy but
         // end up not writing it.
-        if (pkt->memInhibitAsserted()) {
+        if (pkt->memInhibitAsserted())
             blk->status |= BlkDirty;
-            if (controller) {
-                controller->DirtyBlock(pkt->getAddr(), pkt->getSize());
-            }
-        }
     }
 
     DPRINTF(Cache, "Block addr %x moving from state %x to %s\n",
@@ -1688,7 +1653,7 @@ Cache<TagStore>::getTimingPacket()
         return NULL;
     } else if (mshr->isForwardNoResponse()) {
         // no response expected, just forward packet as it is
-        //assert(tags->findBlock(mshr->addr) == NULL);//TODO: due to THNVM
+        assert(tags->findBlock(mshr->addr) == NULL);
         pkt = tgt_pkt;
     } else {
         BlkType *blk = tags->findBlock(mshr->addr);
