@@ -54,8 +54,6 @@
 #include "mem/cache/mshr.hh"
 #include "sim/full_system.hh"
 
-#include "mem/cache/cache_controller.h"
-
 using namespace std;
 
 BaseCache::CacheSlavePort::CacheSlavePort(const std::string &_name,
@@ -69,7 +67,7 @@ BaseCache::CacheSlavePort::CacheSlavePort(const std::string &_name,
 BaseCache::BaseCache(const Params *p)
     : MemObject(p),
       mshrQueue("MSHRs", p->mshrs, 4, MSHRQueue_MSHRs),
-      writeBuffer("write buffer", p->write_buffers, p->num_reserved,
+      writeBuffer("write buffer", p->write_buffers, p->mshrs+1000,
                   MSHRQueue_WriteBuffer),
       blkSize(p->system->cacheLineSize()),
       hitLatency(p->hit_latency),
@@ -81,11 +79,8 @@ BaseCache::BaseCache(const Params *p)
       noTargetMSHR(NULL),
       missCount(p->max_miss_count),
       addrRanges(p->addr_ranges.begin(), p->addr_ranges.end()),
-      system(p->system), controller(p->controller)
+      system(p->system)
 {
-    if (controller) {
-        controller->RegisterCache(this);
-    }
 }
 
 void
@@ -415,11 +410,6 @@ BaseCache::regStats()
     cacheCopies
         .name(name() + ".cache_copies")
         .desc("number of cache copies performed")
-        ;
-
-    cacheFlushes
-        .name(name() + ".cache_flushes")
-        .desc("number of cache flushes performed")
         ;
 
     writebacks
